@@ -206,7 +206,7 @@
         props:{
             invoice_id: 0,
         },
-        data: function(){
+        data(){
             return {
                 trans:trans,  // global function for translations - trans('msg.test',{name:'Adam'})
                 moneyFormat: moneyFormat,
@@ -243,18 +243,18 @@
             isShowVatColumn(){
                 return ! this.invoice.isReverseCharge;
             },
-            summaryColspan() {
+            summaryColspan(){
                 return this.invoice.isReverseCharge ? 4 : 5;
             },
-            lineComputed: function(){
+            lineComputed(){
                 return this.computeInvoiceLines();
             },
-            summaryComputed: function(){
+            summaryComputed(){
                 let subtotal = 0;
                 let VATs = []; // [[vat%, vatAmount,nettoAmount], ...]
 
                 let invoiceTotal = 0;
-                this.invoiceLines.map(function(line, index) {
+                this.invoiceLines.map((line, index) => {
                     if( this.invoice.isReverseCharge ){
                         line.vat = 0;
                     }
@@ -266,33 +266,33 @@
                     if(this.isShowVatColumn){
                         VATs = this._updateVAT(VATs, line.vat, lineVat, lineNetto);
                     }
-                }.bind(this));
+                });
                 this.invoice.total = invoiceTotal;
                 return {subtotal: subtotal, VATs: VATs};
             },
-            sortedVATs: function(){
-                return this.summaryComputed.VATs.sort(function(a, b) {
+            sortedVATs(){
+                return this.summaryComputed.VATs.sort((a, b) => {
                     let x = a[0]; let y = b[0];
                     return ((x < y) ? -1 : ((x > y) ? 1 : 0));
                 });
             }
         },
         methods: {
-            clientSelected: function(client){
+            clientSelected(client){
                 this.invoice.client_id = client.id;
                 this.client = client;
                 this.$forceUpdate();
             },
-            clientReset: function(){
+            clientReset(){
                 this.invoice.client_id = 0;
                 this.client = {};
                 this.$forceUpdate();
             },
-            fetchInvoiceData: function () {
+            fetchInvoiceData(){
                 this.isLoading++;
                 let self = this;
                 axios.get('/api/invoices/'+this.invoice_id)
-                    .then(function (rsp) {
+                    .then( rsp => {
                         self.invoice.total = 0;
                         self.invoice = rsp.data.invoice;
                         self.allowedDateRange = rsp.data.allowedDateRange;
@@ -304,32 +304,32 @@
                         }
                         self.isLoading--;
                     })
-                    .catch(function (error) {
+                    .catch( error => {
                         console.log(error);
                         self.isLoading--;
                     });
             },
-            getConfig: function () {
+            getConfig(){
                 let self = this;
                 self.isLoading++;
                 axios.get('/api/config',{params: { unit_types:{},vat_types:{} }})
-                    .then(function (rsp) {
+                    .then( rsp => {
                         self.unit_types = rsp.data.unit_types;
                         self.vat_types = rsp.data.vat_types;
                         self.isLoading--;
                     })
-                    .catch(function (error) {
+                    .catch( error => {
                         console.log(error);
                         self.isLoading--;
                     });
             },
-            addLine: function(){
+            addLine(){
                 this.invoiceLines.push( this.defaultInvoiceLine() );
             },
-            removeLine: function(index){
+            removeLine(index){
                 this.invoiceLines.splice( index, 1 );
             },
-            saveInvoice: function(andDownloadPDF){
+            saveInvoice(andDownloadPDF){
                 let self = this;
                 axios.post(
                     '/api/invoices/store',
@@ -337,7 +337,7 @@
                         invoice: this.invoice,
                         invoiceLines: this.invoiceLines
                     })
-                    .then(function (response) {
+                    .then( response => {
                         self.vErrors = {};
                         if(andDownloadPDF){
                             window.location = '/api/pdf/download/invoice?id=' + response.data.invoice_id + '&token=' + localStorage.getItem('id_token');
@@ -345,7 +345,7 @@
                         EventBus.$emit('invoices.changed', self.invoice);
                         self.$emit('close');
                     })
-                    .catch(function (error, response) {
+                    .catch( (error, response) => {
                         /*
                         {"invoice.client_id":["The invoice.client id field is required."],"invoiceLines.0.name":["The invoiceLines.0.name field is required."],"invoiceLines.0.unit_cost":["The invoiceLines.0.unit_cost field is required."],"invoiceLines.0.count":["The invoiceLines.0.count field is required."],"invoiceLines.0.vat":["The selected invoiceLines.0.vat is invalid."]}
                         */
@@ -356,12 +356,12 @@
                         }
                     });
             },
-            downloadPDF: function(){
+            downloadPDF(){
                 this.saveInvoice( true );
             },
-            computeInvoiceLines: function(){
+            computeInvoiceLines(){
                 let c = {};
-                this.invoiceLines.map(function(line, index) {
+                this.invoiceLines.map( (line, index) => {
                     c[index] = {};
                     let lineNetto = line.unit_cost * line.count;
                     let lineVat = (line.vat>=0) ? lineNetto * line.vat / 100 : 0;
@@ -370,10 +370,10 @@
                     c[index].netto = helpers.isNaN( helpers.round(lineNetto,2), '--');
                     c[index].vat = helpers.isNaN( helpers.round(lineVat,2), '--');
                     c[index].total = helpers.isNaN( helpers.round(lineTotal,2), '--');
-                }.bind(this));
+                });
                 return c;
             },
-            defaultInvoiceLine: function(){
+            defaultInvoiceLine(){
                 return {
                     name: '',
                     unit_type: 'piece',
@@ -383,15 +383,15 @@
                 }
             },
             
-            _updateVAT: function(VATs, percent, amountVAT, amountNetto){
+            _updateVAT(VATs, percent, amountVAT, amountNetto){
                 let found = false;
-                VATs.map( function(Vat,i){
+                VATs.map( (Vat,i) => {
                     if (Vat[0] == percent){
                         VATs[i][1] += amountVAT;
                         VATs[i][2] += amountNetto;
                         found = true;
                     }
-                }.bind(this));
+                });
                 if (found == false){
                     VATs.push( [percent, amountVAT, amountNetto] );
                 }
